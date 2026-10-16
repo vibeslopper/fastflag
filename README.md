@@ -4,13 +4,13 @@ A small static quiz for practising the flags of 197 countries. The site uses pla
 
 ## Build the CSS
 
-Install the Tailwind CSS v3 standalone CLI for your operating system and place its executable in the repository root as `tailwindcss` (it is a local build tool, not a site dependency). Then run:
+Install the Tailwind CSS v4 standalone CLI for your operating system and place its executable in the repository root as `tailwindcss` (it is a local build tool, not a site dependency):
 
 ```sh
 ./tailwindcss -i ./src/input.css -o ./output.css --minify
 ```
 
-The generated `output.css` is the production stylesheet and should be committed. Tailwind scans `index.html` and `app.js`; keep class names written out in full in those files.
+The generated `output.css` is the production stylesheet and should be committed. Tailwind scans `index.html` and `app.js`; keep class names written out in full in those files. The CLI is only used to build CSS; the deployed site remains static.
 
 ## Check the country data
 
