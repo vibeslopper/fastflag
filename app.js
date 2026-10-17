@@ -1,8 +1,10 @@
 const $ = function (id) { return document.getElementById(id); };
 const CONTINENTS = ["Africa", "Asia", "Europe", "North America", "South America", "Oceania"];
 const STORAGE_KEY = "flag-quiz-state-v1";
+const ANSWER_MODE_KEY = "flag-quiz-answer-mode-v1";
 const state = {
   screen: "start",
+  answerMode: "submit",
   selectedContinents: CONTINENTS.slice(),
   queue: [],
   index: 0,
@@ -14,10 +16,11 @@ const state = {
 };
 const elements = {
   startScreen: $("start-screen"), playScreen: $("play-screen"), endScreen: $("end-screen"),
+  gameHint: $("game-hint"), answerModeInputs: Array.from(document.querySelectorAll('input[name="answer-mode"]')),
   continentInputs: Array.from(document.querySelectorAll("#continent-list input")),
   countryCount: $("country-count"), startButton: $("start-button"), progress: $("progress"),
   flagImage: $("flag-image"), answerForm: $("answer-form"), guessInput: $("guess-input"),
-  submitButton: $("submit-button"), answerMessage: $("answer-message"), skipButton: $("skip-button"),
+  submitButton: $("submit-button"), answerHint: $("answer-hint"), answerMessage: $("answer-message"), skipButton: $("skip-button"),
   continueButton: $("continue-button"), endTotal: $("end-total"), endCorrect: $("end-correct"),
   endSkipped: $("end-skipped"), skippedList: $("skipped-list"), noSkips: $("no-skips")
 };
@@ -68,6 +71,23 @@ function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ selectedContinents: state.selectedContinents, game: game }));
   } catch (error) {
     // The quiz still works when browser storage is disabled or full.
+  }
+}
+
+function restoreAnswerMode() {
+  try {
+    const savedMode = localStorage.getItem(ANSWER_MODE_KEY);
+    if (savedMode === "submit" || savedMode === "auto") state.answerMode = savedMode;
+  } catch (error) {
+    // Enter-to-submit remains the default when storage is unavailable.
+  }
+}
+
+function saveAnswerMode() {
+  try {
+    localStorage.setItem(ANSWER_MODE_KEY, state.answerMode);
+  } catch (error) {
+    // The selected mode still works until the page is closed.
   }
 }
 
@@ -125,6 +145,19 @@ function updateStartScreen() {
   elements.startButton.disabled = state.selectedContinents.length === 0;
 }
 
+function updateAnswerMode() {
+  const autoAccept = state.answerMode === "auto";
+  elements.answerModeInputs.forEach(input => {
+    input.checked = input.value === state.answerMode;
+  });
+  elements.submitButton.classList.toggle("hidden", autoAccept);
+  elements.answerHint.classList.toggle("hidden", !autoAccept);
+  elements.answerHint.textContent = autoAccept ? "Auto-accept: just type the answer. Esc to skip." : "";
+  elements.gameHint.textContent = autoAccept
+    ? "Name the country. Just type the answer or Esc to skip."
+    : "Name the country. Press Enter to answer or Esc to skip.";
+}
+
 function preloadNextFlag() {
   state.preload = state.index + 1 < state.queue.length ? new Image() : null;
   if (state.preload) state.preload.src = flagPath(state.queue[state.index + 1]);
@@ -161,6 +194,7 @@ function renderEndScreen() {
 }
 
 function render() {
+  updateAnswerMode();
   elements.startScreen.classList.toggle("hidden", state.screen !== "start");
   elements.playScreen.classList.toggle("hidden", state.screen !== "playing");
   elements.endScreen.classList.toggle("hidden", state.screen !== "end");
@@ -206,15 +240,19 @@ function skipCurrent() {
   render();
 }
 
-function submitAnswer() {
+function checkAnswer() {
   const guess = normalise(elements.guessInput.value);
-  if (!guess) return elements.guessInput.focus();
+  if (!guess) {
+    if (state.answerMode === "submit") elements.guessInput.focus();
+    return;
+  }
   const country = currentCountry();
   const correct = [country.name].concat(country.aliases).some(answer => normalise(answer) === guess);
   if (correct) {
     if (state.firstTry) state.correctFirstTry += 1;
     return moveNext();
   }
+  if (state.answerMode === "auto") return;
   state.firstTry = false;
   elements.answerMessage.textContent = "Incorrect, try again.";
   elements.answerMessage.classList.add("text-rose-700", "dark:text-rose-300");
@@ -240,11 +278,22 @@ elements.continentInputs.forEach(input => input.addEventListener("change", () =>
   saveState();
   updateStartScreen();
 }));
+elements.answerModeInputs.forEach(input => input.addEventListener("change", () => {
+  if (!input.checked) return;
+  state.answerMode = input.value === "auto" ? "auto" : "submit";
+  saveAnswerMode();
+  elements.answerMessage.textContent = "";
+  elements.answerMessage.classList.remove("text-rose-700", "dark:text-rose-300");
+  updateAnswerMode();
+}));
 elements.startButton.addEventListener("click", startGame);
 elements.answerForm.addEventListener("submit", event => {
   event.preventDefault();
   if (state.revealed) moveNext();
-  else submitAnswer();
+  else if (state.answerMode === "submit") checkAnswer();
+});
+elements.guessInput.addEventListener("input", () => {
+  if (state.screen === "playing" && !state.revealed && state.answerMode === "auto") checkAnswer();
 });
 elements.skipButton.addEventListener("click", skipCurrent);
 elements.continueButton.addEventListener("click", moveNext);
@@ -263,5 +312,6 @@ document.addEventListener("keydown", event => {
   }
 });
 
+restoreAnswerMode();
 restoreState();
 render();
