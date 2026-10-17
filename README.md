@@ -1,4 +1,4 @@
-## Flag Quiz
+## FastFlag
 
 #### I am ashamed to admit this was completely vibecoded.<br>I just wanted to learn the flags of the world.<br>Only cost me $0.17 though!
 
