@@ -1,7 +1,5 @@
 ## FastFlag
 
-#### I am ashamed to admit this was completely vibecoded.<br>I just wanted to learn the flags of the world.<br>Only cost me $0.17 though!
-
 ### Build the CSS
 
 Install the Tailwind CSS v4 standalone CLI for your operating system and place its executable in the repository root as `tailwindcss` (it is a local build tool, not a site dependency):
