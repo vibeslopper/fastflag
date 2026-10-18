@@ -1,11 +1,14 @@
 const $ = function (id) { return document.getElementById(id); };
 const CONTINENTS = ["Africa", "Asia", "Europe", "North America", "South America", "Oceania"];
+const FLAG_TYPES = ["countries", "territories", "regions"];
 const STORAGE_KEY = "flag-quiz-state-v1";
 const ANSWER_MODE_KEY = "flag-quiz-answer-mode-v1";
+const CATEGORY_KEY = "flag-quiz-categories-v1";
 const state = {
   screen: "start",
   answerMode: "submit",
   selectedContinents: CONTINENTS.slice(),
+  selectedCategories: ["countries"],
   queue: [],
   index: 0,
   correctFirstTry: 0,
@@ -18,6 +21,7 @@ const elements = {
   startScreen: $("start-screen"), playScreen: $("play-screen"), endScreen: $("end-screen"),
   gameHint: $("game-hint"), answerModeInputs: Array.from(document.querySelectorAll('input[name="answer-mode"]')),
   continentInputs: Array.from(document.querySelectorAll("#continent-list input")),
+  categoryInputs: Array.from(document.querySelectorAll("#category-list input")),
   countryCount: $("country-count"), startButton: $("start-button"), progress: $("progress"),
   flagImage: $("flag-image"), answerForm: $("answer-form"), guessInput: $("guess-input"),
   submitButton: $("submit-button"), answerHint: $("answer-hint"), answerMessage: $("answer-message"), skipButton: $("skip-button"),
@@ -35,12 +39,13 @@ function flagPath(code) {
   return "data/flags/4x3/" + code + ".svg";
 }
 
-function currentCountry() {
-  return countries.find(country => country.code === state.queue[state.index]);
+function currentFlag() {
+  return countries.find(flag => flag.code === state.queue[state.index]);
 }
 
-function selectedCountries() {
-  return countries.filter(country => state.selectedContinents.indexOf(country.continent) !== -1);
+function selectedFlags() {
+  return countries.filter(flag => state.selectedCategories.indexOf(flag.category) !== -1 &&
+    (!flag.continent || state.selectedContinents.indexOf(flag.continent) !== -1));
 }
 
 function shuffle(items) {
@@ -74,6 +79,30 @@ function saveState() {
   }
 }
 
+function validCategories(categories) {
+  return Array.isArray(categories) && categories.length > 0 &&
+    categories.every(category => FLAG_TYPES.indexOf(category) !== -1) &&
+    new Set(categories).size === categories.length;
+}
+
+function restoreCategories() {
+  try {
+    const saved = localStorage.getItem(CATEGORY_KEY);
+    const categories = saved ? JSON.parse(saved) : null;
+    if (validCategories(categories)) state.selectedCategories = categories.slice();
+  } catch (error) {
+    // Countries remain selected when browser storage is unavailable or invalid.
+  }
+}
+
+function saveCategories() {
+  try {
+    localStorage.setItem(CATEGORY_KEY, JSON.stringify(state.selectedCategories));
+  } catch (error) {
+    // The selected categories still work until the page is closed.
+  }
+}
+
 function restoreAnswerMode() {
   try {
     const savedMode = localStorage.getItem(ANSWER_MODE_KEY);
@@ -102,7 +131,7 @@ function validGame(game) {
       !Number.isInteger(game.index) || !Number.isInteger(game.correctFirstTry) ||
       game.correctFirstTry < 0 || typeof game.firstTry !== "boolean" || typeof game.revealed !== "boolean") return false;
 
-  const eligible = new Set(selectedCountries().map(country => country.code));
+  const eligible = new Set(selectedFlags().map(flag => flag.code));
   const queue = new Set(game.queue);
   const skipped = new Set(game.skipped);
   if (game.queue.length !== eligible.size || game.index < 0 || game.index >= game.queue.length ||
@@ -140,9 +169,12 @@ function updateStartScreen() {
   elements.continentInputs.forEach(input => {
     input.checked = state.selectedContinents.indexOf(input.value) !== -1;
   });
-  const count = selectedCountries().length;
+  elements.categoryInputs.forEach(input => {
+    input.checked = state.selectedCategories.indexOf(input.value) !== -1;
+  });
+  const count = selectedFlags().length;
   elements.countryCount.textContent = count + (count === 1 ? " flag selected" : " flags selected");
-  elements.startButton.disabled = state.selectedContinents.length === 0;
+  elements.startButton.disabled = state.selectedContinents.length === 0 || state.selectedCategories.length === 0;
 }
 
 function updateAnswerMode() {
@@ -154,8 +186,8 @@ function updateAnswerMode() {
   elements.answerHint.classList.toggle("hidden", !autoAccept);
   elements.answerHint.textContent = autoAccept ? "Auto-accept: just type the answer. Esc to skip." : "";
   elements.gameHint.textContent = autoAccept
-    ? "Name the country. Just type the answer or Esc to skip."
-    : "Name the country. Press Enter to answer or Esc to skip.";
+    ? "Name the place. Just type the answer or Esc to skip."
+    : "Name the place. Press Enter to answer or Esc to skip.";
 }
 
 function preloadNextFlag() {
@@ -164,17 +196,17 @@ function preloadNextFlag() {
 }
 
 function renderPlaying() {
-  const country = currentCountry();
-  if (!country) return finishGame();
+  const flag = currentFlag();
+  if (!flag) return finishGame();
   elements.progress.textContent = (state.index + 1) + " / " + state.queue.length;
-  elements.flagImage.src = flagPath(country.code);
+  elements.flagImage.src = flagPath(flag.code);
   elements.guessInput.value = "";
   elements.guessInput.disabled = state.revealed;
   elements.submitButton.disabled = state.revealed;
   elements.skipButton.classList.toggle("hidden", state.revealed);
   elements.continueButton.classList.toggle("hidden", !state.revealed);
   elements.answerMessage.classList.remove("text-rose-700", "dark:text-rose-300");
-  elements.answerMessage.textContent = state.revealed ? "Skipped. The answer was " + country.name + "." : "";
+  elements.answerMessage.textContent = state.revealed ? "Skipped. The answer was " + flag.name + "." : "";
   preloadNextFlag();
   (state.revealed ? elements.continueButton : elements.guessInput).focus();
 }
@@ -186,9 +218,9 @@ function renderEndScreen() {
   elements.skippedList.textContent = "";
   elements.noSkips.classList.toggle("hidden", state.skipped.length > 0);
   state.skipped.forEach(code => {
-    const country = countries.find(item => item.code === code);
+    const flag = countries.find(item => item.code === code);
     const listItem = document.createElement("li");
-    listItem.textContent = country.name;
+    listItem.textContent = flag.name;
     elements.skippedList.appendChild(listItem);
   });
 }
@@ -204,7 +236,7 @@ function render() {
 }
 
 function startGame() {
-  const queue = selectedCountries().map(country => country.code);
+  const queue = selectedFlags().map(flag => flag.code);
   if (!queue.length) return;
   state.queue = shuffle(queue);
   state.index = 0;
@@ -234,7 +266,7 @@ function moveNext() {
 
 function skipCurrent() {
   if (state.screen !== "playing" || state.revealed) return;
-  state.skipped.push(currentCountry().code);
+  state.skipped.push(currentFlag().code);
   state.revealed = true;
   saveState();
   render();
@@ -246,8 +278,8 @@ function checkAnswer() {
     if (state.answerMode === "submit") elements.guessInput.focus();
     return;
   }
-  const country = currentCountry();
-  const correct = [country.name].concat(country.aliases).some(answer => normalise(answer) === guess);
+  const flag = currentFlag();
+  const correct = [flag.name].concat(flag.aliases).some(answer => normalise(answer) === guess);
   if (correct) {
     if (state.firstTry) state.correctFirstTry += 1;
     return moveNext();
@@ -276,6 +308,11 @@ function clearGame() {
 elements.continentInputs.forEach(input => input.addEventListener("change", () => {
   state.selectedContinents = elements.continentInputs.filter(item => item.checked).map(item => item.value);
   saveState();
+  updateStartScreen();
+}));
+elements.categoryInputs.forEach(input => input.addEventListener("change", () => {
+  state.selectedCategories = elements.categoryInputs.filter(item => item.checked).map(item => item.value);
+  saveCategories();
   updateStartScreen();
 }));
 elements.answerModeInputs.forEach(input => input.addEventListener("change", () => {
@@ -313,5 +350,6 @@ document.addEventListener("keydown", event => {
 });
 
 restoreAnswerMode();
+restoreCategories();
 restoreState();
 render();

@@ -10,7 +10,7 @@ Install the Tailwind CSS v4 standalone CLI for your operating system and place i
 
 The generated `output.css` is the production stylesheet and should be committed. Tailwind scans `index.html` and `app.js`; keep class names written out in full in those files. The CLI is only used to build CSS; the deployed site remains static.
 
-### Check the country data
+### Check the flag data
 
 With Node.js installed, run:
 
@@ -18,7 +18,7 @@ With Node.js installed, run:
 node check-data.js
 ```
 
-The script reports country totals by continent, the overall count, duplicate codes, and any code without a `data/flags/4x3/<code>.svg` file. It exits with a non-zero status if a check fails.
+The script reports totals by flag category and continent, the overall count, duplicate or invalid codes, invalid categories, and any code without a `data/flags/4x3/<code>.svg` file. It exits with a non-zero status if a check fails.
 
 ### Run locally
 

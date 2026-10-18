@@ -4,34 +4,54 @@ const vm = require("vm");
 
 const source = fs.readFileSync(path.join(__dirname, "data.js"), "utf8");
 const countries = vm.runInNewContext(source + "\ncountries", {});
+const categories = ["countries", "territories", "regions"];
+const categoryTotals = { countries: 0, territories: 0, regions: 0 };
+const continentTotals = {};
 const seen = new Set();
-const totals = {};
 const duplicates = [];
+const invalidCodes = [];
+const invalidCategories = [];
 const missingFlags = [];
 let problems = 0;
 
-countries.forEach(function (country) {
-  if (seen.has(country.code)) {
-    duplicates.push(country.code);
+countries.forEach(function (flag) {
+  if (seen.has(flag.code)) {
+    duplicates.push(flag.code);
   }
-  seen.add(country.code);
+  seen.add(flag.code);
 
-  const flag = path.join(__dirname, "data", "flags", "4x3", country.code + ".svg");
-  if (!fs.existsSync(flag)) {
-    missingFlags.push(country.code);
+  if (!/^[a-z]+(?:-[a-z]+)*$/.test(flag.code)) {
+    invalidCodes.push(flag.code);
   }
-  totals[country.continent] = (totals[country.continent] || 0) + 1;
+
+  const flagPath = path.join(__dirname, "data", "flags", "4x3", flag.code + ".svg");
+  if (!fs.existsSync(flagPath)) {
+    missingFlags.push(flag.code);
+  }
+
+  if (categories.indexOf(flag.category) === -1) {
+    invalidCategories.push(flag.code + ": " + flag.category);
+  } else {
+    categoryTotals[flag.category] += 1;
+  }
+  const continent = flag.continent || "(none)";
+  continentTotals[continent] = (continentTotals[continent] || 0) + 1;
 });
 
 console.log("Duplicate codes: " + (duplicates.join(", ") || "none"));
+console.log("Invalid codes: " + (invalidCodes.join(", ") || "none"));
 console.log("Missing flags: " + (missingFlags.join(", ") || "none"));
-Object.keys(totals).sort().forEach(function (continent) {
-  console.log(continent + ": " + totals[continent]);
+console.log("Invalid categories: " + (invalidCategories.join(", ") || "none"));
+Object.keys(categoryTotals).sort().forEach(function (category) {
+  console.log("Category " + category + ": " + categoryTotals[category]);
 });
-console.log("Total: " + countries.length);
-problems += duplicates.length + missingFlags.length;
-if (countries.length !== 197) {
-  console.error("Expected 197 countries.");
+Object.keys(continentTotals).sort().forEach(function (continent) {
+  console.log("Continent " + continent + ": " + continentTotals[continent]);
+});
+console.log("Total flags: " + countries.length);
+problems += duplicates.length + invalidCodes.length + invalidCategories.length + missingFlags.length;
+if (categoryTotals.countries !== 197) {
+  console.error("Expected 197 country flags.");
   problems += 1;
 }
 if (problems) process.exitCode = 1;
