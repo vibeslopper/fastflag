@@ -1,7 +1,8 @@
 const $ = function (id) { return document.getElementById(id); };
 const CONTINENTS = ["Africa", "Asia", "Europe", "North America", "South America", "Oceania"];
-const FLAG_TYPES = ["countries", "territories", "regions"];
-const GAME_MODES = ["flag-country", "flag-capital", "country-capital"];
+const FLAG_TYPES = ["countries", "territories"];
+const GUESS_TYPES = ["place", "capital"];
+const PROMPT_TYPES = ["flag", "country"];
 const STORAGE_KEY = "flag-quiz-state-v1";
 const ANSWER_MODE_KEY = "flag-quiz-answer-mode-v1";
 const CATEGORY_KEY = "flag-quiz-categories-v1";
@@ -9,7 +10,8 @@ const GAME_MODE_KEY = "flag-quiz-game-mode-v1";
 const state = {
   screen: "start",
   answerMode: "submit",
-  gameMode: "flag-country",
+  guessType: "place",
+  promptType: "flag",
   selectedContinents: CONTINENTS.slice(),
   selectedCategories: ["countries"],
   queue: [],
@@ -22,11 +24,12 @@ const state = {
 };
 const elements = {
   startScreen: $("start-screen"), playScreen: $("play-screen"), endScreen: $("end-screen"),
-  gameHint: $("game-hint"), gameModeInputs: Array.from(document.querySelectorAll('input[name="game-mode"]')),
+  gameHint: $("game-hint"), guessTypeInputs: Array.from(document.querySelectorAll('input[name="guess-type"]')),
+  promptTypeInputs: Array.from(document.querySelectorAll('input[name="prompt-type"]')),
+  countryPromptInput: $("country-prompt-input"), modeNote: $("mode-note"),
   answerModeInputs: Array.from(document.querySelectorAll('input[name="answer-mode"]')),
   continentInputs: Array.from(document.querySelectorAll("#continent-list input")),
   categoryInputs: Array.from(document.querySelectorAll("#category-list input")),
-  categoryFieldset: $("flag-type-fieldset"), capitalModeNote: $("capital-mode-note"),
   countryCount: $("country-count"), startButton: $("start-button"), progress: $("progress"),
   playHeading: $("play-heading"), countryPrompt: $("country-prompt"), flagImage: $("flag-image"),
   answerLabel: $("answer-label"), answerForm: $("answer-form"), guessInput: $("guess-input"),
@@ -49,12 +52,13 @@ function currentFlag() {
   return countries.find(flag => flag.code === state.queue[state.index]);
 }
 
-function selectedFlags(gameMode) {
-  const mode = gameMode || state.gameMode;
+function selectedFlags(guessType, promptType) {
+  const guess = guessType || state.guessType;
+  const prompt = promptType || state.promptType;
   return countries.filter(flag => {
-    const selectedType = mode === "flag-country"
+    const selectedType = guess === "place" && prompt === "flag"
       ? state.selectedCategories.indexOf(flag.category) !== -1
-      : flag.category === "countries" && Boolean(flag.capital);
+      : guess === "capital" && flag.category === "countries" && Boolean(flag.capital);
     return selectedType && (!flag.continent || state.selectedContinents.indexOf(flag.continent) !== -1);
   });
 }
@@ -80,7 +84,8 @@ function readSavedState() {
 
 function saveState() {
   const game = state.screen === "playing" ? {
-    mode: state.gameMode, queue: state.queue, index: state.index, correctFirstTry: state.correctFirstTry,
+    guessType: state.guessType, promptType: state.promptType,
+    queue: state.queue, index: state.index, correctFirstTry: state.correctFirstTry,
     skipped: state.skipped, firstTry: state.firstTry, revealed: state.revealed
   } : null;
   try {
@@ -116,16 +121,46 @@ function saveCategories() {
 
 function restoreGameMode() {
   try {
-    const savedMode = localStorage.getItem(GAME_MODE_KEY);
-    if (GAME_MODES.indexOf(savedMode) !== -1) state.gameMode = savedMode;
+    const saved = localStorage.getItem(GAME_MODE_KEY);
+    if (!saved) return;
+    let mode;
+    try {
+      mode = JSON.parse(saved);
+    } catch (error) {
+      mode = legacyGameMode(saved);
+    }
+    if (typeof mode === "string") mode = legacyGameMode(mode);
+    if (mode && validGameMode(mode.guessType, mode.promptType)) {
+      state.guessType = mode.guessType;
+      state.promptType = mode.promptType;
+    }
   } catch (error) {
     // The flag quiz remains the default when storage is unavailable.
   }
 }
 
+function validGameMode(guessType, promptType) {
+  return GUESS_TYPES.indexOf(guessType) !== -1 &&
+    (guessType === "place" ? promptType === "flag" : PROMPT_TYPES.indexOf(promptType) !== -1);
+}
+
+function legacyGameMode(mode) {
+  if (mode === "flag-country") return { guessType: "place", promptType: "flag" };
+  if (mode === "flag-capital") return { guessType: "capital", promptType: "flag" };
+  if (mode === "country-capital") return { guessType: "capital", promptType: "country" };
+  return null;
+}
+
+function savedGameMode(game) {
+  if (game.guessType !== undefined || game.promptType !== undefined) {
+    return { guessType: game.guessType, promptType: game.promptType };
+  }
+  return game.mode === undefined ? { guessType: "place", promptType: "flag" } : legacyGameMode(game.mode);
+}
+
 function saveGameMode() {
   try {
-    localStorage.setItem(GAME_MODE_KEY, state.gameMode);
+    localStorage.setItem(GAME_MODE_KEY, JSON.stringify({ guessType: state.guessType, promptType: state.promptType }));
   } catch (error) {
     // The selected quiz still works until the page is closed.
   }
@@ -159,9 +194,9 @@ function validGame(game) {
       !Number.isInteger(game.index) || !Number.isInteger(game.correctFirstTry) ||
       game.correctFirstTry < 0 || typeof game.firstTry !== "boolean" || typeof game.revealed !== "boolean") return false;
 
-  const gameMode = game.mode === undefined ? "flag-country" : game.mode;
-  if (GAME_MODES.indexOf(gameMode) === -1) return false;
-  const eligible = new Set(selectedFlags(gameMode).map(flag => flag.code));
+  const gameMode = savedGameMode(game);
+  if (!gameMode || !validGameMode(gameMode.guessType, gameMode.promptType)) return false;
+  const eligible = new Set(selectedFlags(gameMode.guessType, gameMode.promptType).map(flag => flag.code));
   const queue = new Set(game.queue);
   const skipped = new Set(game.skipped);
   if (game.queue.length !== eligible.size || game.index < 0 || game.index >= game.queue.length ||
@@ -187,7 +222,9 @@ function restoreState() {
     return;
   }
   state.screen = "playing";
-  state.gameMode = saved.game.mode === undefined ? "flag-country" : saved.game.mode;
+  const gameMode = savedGameMode(saved.game);
+  state.guessType = gameMode.guessType;
+  state.promptType = gameMode.promptType;
   saveGameMode();
   state.queue = saved.game.queue.slice();
   state.index = saved.game.index;
@@ -198,39 +235,50 @@ function restoreState() {
 }
 
 function updateStartScreen() {
-  elements.gameModeInputs.forEach(input => {
-    input.checked = input.value === state.gameMode;
+  elements.guessTypeInputs.forEach(input => {
+    input.checked = input.value === state.guessType;
+  });
+  elements.promptTypeInputs.forEach(input => {
+    input.checked = input.value === state.promptType;
   });
   elements.continentInputs.forEach(input => {
     input.checked = state.selectedContinents.indexOf(input.value) !== -1;
   });
+  const placeFromFlag = state.guessType === "place" && state.promptType === "flag";
   elements.categoryInputs.forEach(input => {
-    input.checked = state.selectedCategories.indexOf(input.value) !== -1;
+    input.disabled = !placeFromFlag;
+    input.checked = placeFromFlag
+      ? state.selectedCategories.indexOf(input.value) !== -1
+      : input.value === "countries";
+    input.parentElement.classList.toggle("opacity-50", !placeFromFlag && input.value === "territories");
   });
-  const flagQuiz = state.gameMode === "flag-country";
-  elements.categoryFieldset.classList.toggle("hidden", !flagQuiz);
-  elements.capitalModeNote.classList.toggle("hidden", flagQuiz);
+  elements.countryPromptInput.disabled = state.guessType === "place";
+  elements.countryPromptInput.parentElement.classList.toggle("opacity-50", state.guessType === "place");
+  const placeQuiz = state.guessType === "place";
+  elements.modeNote.textContent = placeQuiz
+    ? "Place quizzes use flags; country-name prompts are for capitals."
+    : "Capital quizzes use countries only; territories and dependencies are unavailable.";
   const count = selectedFlags().length;
-  elements.countryCount.textContent = count + (flagQuiz
+  elements.countryCount.textContent = count + (placeQuiz
     ? (count === 1 ? " flag selected" : " flags selected")
     : (count === 1 ? " country selected" : " countries selected"));
   elements.startButton.disabled = state.selectedContinents.length === 0 ||
-    (flagQuiz && state.selectedCategories.length === 0) || count === 0;
+    (placeFromFlag && state.selectedCategories.length === 0) || count === 0;
 }
 
 function updateAnswerMode() {
   const autoAccept = state.answerMode === "auto";
-  const flagQuiz = state.gameMode === "flag-country";
-  const countryPrompt = state.gameMode === "country-capital";
+  const placeQuiz = state.guessType === "place";
+  const countryPrompt = state.promptType === "country";
   elements.answerModeInputs.forEach(input => {
     input.checked = input.value === state.answerMode;
   });
-  elements.answerLabel.textContent = flagQuiz ? "Country or region" : "Capital city";
-  elements.playHeading.textContent = flagQuiz ? "Identify the flag" : "Name the capital";
+  elements.answerLabel.textContent = placeQuiz ? "Country or territory" : "Capital city";
+  elements.playHeading.textContent = placeQuiz ? "Identify the flag" : "Name the capital";
   elements.submitButton.classList.toggle("hidden", autoAccept);
   elements.answerHint.classList.toggle("hidden", !autoAccept);
   elements.answerHint.textContent = autoAccept ? "Auto-accept: just type the answer. Esc to skip." : "";
-  const prompt = flagQuiz ? "Name the country or region from the flag."
+  const prompt = placeQuiz ? "Name the country or territory from the flag."
     : (countryPrompt ? "Name the capital of the country shown." : "Name the capital from the flag.");
   elements.gameHint.textContent = prompt + (autoAccept
     ? " Just type the answer or Esc to skip."
@@ -246,7 +294,7 @@ function renderPlaying() {
   const flag = currentFlag();
   if (!flag) return finishGame();
   elements.progress.textContent = (state.index + 1) + " / " + state.queue.length;
-  const countryPrompt = state.gameMode === "country-capital";
+  const countryPrompt = state.promptType === "country";
   elements.flagImage.classList.toggle("hidden", countryPrompt);
   elements.countryPrompt.classList.toggle("hidden", !countryPrompt);
   elements.countryPrompt.textContent = countryPrompt ? flag.name : "";
@@ -264,16 +312,17 @@ function renderPlaying() {
   elements.continueButton.classList.toggle("hidden", !state.revealed);
   elements.answerMessage.classList.remove("text-rose-700", "dark:text-rose-300");
   elements.answerMessage.textContent = state.revealed
-    ? (state.gameMode === "flag-country" ? "Skipped. The answer was " + flag.name + "."
+    ? (state.guessType === "place" ? "Skipped. The answer was " + flag.name + "."
       : "Skipped. The capital was " + flag.capital + ".")
     : "";
   (state.revealed ? elements.continueButton : elements.guessInput).focus();
 }
 
 function renderEndScreen() {
-  const flagQuiz = state.gameMode === "flag-country";
+  const placeQuiz = state.guessType === "place";
+  const flagQuiz = placeQuiz && state.promptType === "flag";
   elements.endTotalLabel.textContent = flagQuiz ? "Flags:" : "Questions:";
-  elements.skippedHeading.textContent = flagQuiz ? "Skipped places" : "Skipped capitals";
+  elements.skippedHeading.textContent = placeQuiz ? "Skipped places" : "Skipped capitals";
   elements.endTotal.textContent = state.queue.length;
   elements.endCorrect.textContent = state.correctFirstTry;
   elements.endSkipped.textContent = state.skipped.length;
@@ -282,7 +331,7 @@ function renderEndScreen() {
   state.skipped.forEach(code => {
     const flag = countries.find(item => item.code === code);
     const listItem = document.createElement("li");
-    listItem.textContent = flagQuiz ? flag.name : flag.name + " — " + flag.capital;
+    listItem.textContent = placeQuiz ? flag.name : flag.name + " — " + flag.capital;
     elements.skippedList.appendChild(listItem);
   });
 }
@@ -341,7 +390,7 @@ function checkAnswer() {
     return;
   }
   const flag = currentFlag();
-  const answers = state.gameMode === "flag-country"
+  const answers = state.guessType === "place"
     ? [flag.name].concat(flag.aliases)
     : [flag.capital].concat(flag.capitalAliases || []);
   const correct = answers.some(answer => normalise(answer) === guess);
@@ -375,9 +424,17 @@ elements.continentInputs.forEach(input => input.addEventListener("change", () =>
   saveState();
   updateStartScreen();
 }));
-elements.gameModeInputs.forEach(input => input.addEventListener("change", () => {
+elements.guessTypeInputs.forEach(input => input.addEventListener("change", () => {
   if (!input.checked) return;
-  state.gameMode = input.value;
+  state.guessType = input.value === "capital" ? "capital" : "place";
+  if (state.guessType === "place" && state.promptType === "country") state.promptType = "flag";
+  saveGameMode();
+  updateAnswerMode();
+  updateStartScreen();
+}));
+elements.promptTypeInputs.forEach(input => input.addEventListener("change", () => {
+  if (!input.checked || (state.guessType === "place" && input.value === "country")) return;
+  state.promptType = input.value === "country" ? "country" : "flag";
   saveGameMode();
   updateAnswerMode();
   updateStartScreen();

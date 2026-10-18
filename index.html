@@ -12,22 +12,23 @@
       <header class="mb-8">
         <p class="text-sm font-semibold uppercase tracking-widest text-blue-700 dark:text-blue-300">Learn as you play</p>
         <h1 class="mt-2 text-3xl font-bold tracking-tight">FastFlag</h1>
-        <p id="game-hint" class="mt-2 text-slate-600 dark:text-slate-300">Name the country or region from the flag. Press Enter to answer or Esc to skip.</p>
+        <p id="game-hint" class="mt-2 text-slate-600 dark:text-slate-300">Name the country or territory from the flag. Press Enter to answer or Esc to skip.</p>
       </header>
 
       <section id="start-screen" aria-labelledby="start-heading" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
         <h2 id="start-heading" class="text-xl font-semibold">Choose your quiz</h2>
         <fieldset class="mt-4">
-          <legend class="text-sm font-medium">Flag quiz</legend>
+          <legend class="text-sm font-medium">Guess</legend>
           <div class="mt-2 space-y-2">
-            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="game-mode" value="flag-country" checked> Show a flag; name the country or region</label>
+            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="guess-type" value="place" checked> Country or territory</label>
+            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="guess-type" value="capital"> Capital</label>
           </div>
         </fieldset>
         <fieldset class="mt-5">
-          <legend class="text-sm font-medium">Capital quiz</legend>
+          <legend class="text-sm font-medium">From</legend>
           <div class="mt-2 space-y-2">
-            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="game-mode" value="flag-capital"> Show a flag; name its capital</label>
-            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="game-mode" value="country-capital"> Show a country name; name its capital</label>
+            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="prompt-type" value="flag" checked> Flag</label>
+            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200 opacity-50"><input id="country-prompt-input" class="size-4 accent-blue-700" type="radio" name="prompt-type" value="country" disabled> Country name</label>
           </div>
         </fieldset>
         <fieldset class="mt-4">
@@ -41,15 +42,14 @@
             <label class="flex items-center gap-3 rounded-md py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="checkbox" value="Oceania" checked> Oceania</label>
           </div>
         </fieldset>
-        <fieldset id="flag-type-fieldset" class="mt-5">
-          <legend class="text-sm font-medium">Flag types</legend>
+        <fieldset class="mt-5">
+          <legend class="text-sm font-medium">Place types</legend>
           <div id="category-list" class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
             <label class="flex items-center gap-3 rounded-md py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="checkbox" value="countries" checked> Countries</label>
-            <label class="flex items-center gap-3 rounded-md py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="checkbox" value="territories"> Territories and dependencies</label>
-            <label class="flex items-center gap-3 rounded-md py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="checkbox" value="regions"> Subnational regions</label>
+            <label class="flex items-center gap-3 rounded-md py-1 text-slate-700 dark:text-slate-200 opacity-50"><input class="size-4 accent-blue-700" type="checkbox" value="territories"> Territories and dependencies</label>
           </div>
         </fieldset>
-        <p id="capital-mode-note" class="hidden mt-2 text-sm text-slate-600 dark:text-slate-300">Capital quizzes use the country set only.</p>
+        <p id="mode-note" class="mt-2 text-sm text-slate-600 dark:text-slate-300">Place quizzes use flags; country-name prompts are for capitals.</p>
         <fieldset class="mt-5">
           <legend class="text-sm font-medium">Answer mode</legend>
           <div class="mt-2 space-y-2">
@@ -67,7 +67,7 @@
         <p id="country-prompt" class="hidden mx-auto w-full border border-solid border-slate-400 p-5 text-center text-3xl font-bold dark:border-slate-500" aria-live="polite"></p>
         <img id="flag-image" class="mx-auto h-auto max-h-96 w-full border border-solid border-slate-400 dark:border-slate-500" alt="Flag for this question" draggable="false">
         <form id="answer-form" class="mt-5">
-          <label id="answer-label" for="guess-input" class="block text-sm font-medium">Country or region</label>
+          <label id="answer-label" for="guess-input" class="block text-sm font-medium">Country or territory</label>
           <div class="mt-2 flex gap-2">
             <input id="guess-input" class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-3 text-base text-slate-900 placeholder:text-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="answer-message">
             <button id="submit-button" class="shrink-0 rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500" type="submit">Submit</button>

@@ -4,8 +4,8 @@ const vm = require("vm");
 
 const source = fs.readFileSync(path.join(__dirname, "data.js"), "utf8");
 const countries = vm.runInNewContext(source + "\ncountries", {});
-const categories = ["countries", "territories", "regions"];
-const categoryTotals = { countries: 0, territories: 0, regions: 0 };
+const categories = ["countries", "territories"];
+const categoryTotals = { countries: 0, territories: 0 };
 const continentTotals = {};
 const seen = new Set();
 const duplicates = [];
