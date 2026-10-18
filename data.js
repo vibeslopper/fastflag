@@ -30,7 +30,6 @@ var countries = [
   { code: "bo", name: "Bolivia", continent: "South America", aliases: ["Plurinational State of Bolivia"], category: "countries" },
   { code: "ba", name: "Bosnia and Herzegovina", continent: "Europe", aliases: ["Bosnia & Herzegovina", "Bosnia"], category: "countries" },
   { code: "bw", name: "Botswana", continent: "Africa", aliases: [], category: "countries" },
-  { code: "bv", name: "Bouvet Island", continent: null, aliases: ["Bouvet"], category: "territories" },
   { code: "br", name: "Brazil", continent: "South America", aliases: ["Brasil"], category: "countries" },
   { code: "io", name: "British Indian Ocean Territory", continent: "Asia", aliases: ["BIOT", "Chagos Archipelago", "Chagos Islands"], category: "territories" },
   { code: "bn", name: "Brunei", continent: "Asia", aliases: ["Brunei Darussalam"], category: "countries" },
