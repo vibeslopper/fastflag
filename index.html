@@ -12,11 +12,24 @@
       <header class="mb-8">
         <p class="text-sm font-semibold uppercase tracking-widest text-blue-700 dark:text-blue-300">Learn as you play</p>
         <h1 class="mt-2 text-3xl font-bold tracking-tight">FastFlag</h1>
-        <p id="game-hint" class="mt-2 text-slate-600 dark:text-slate-300">Name the place. Press Enter to answer or Esc to skip.</p>
+        <p id="game-hint" class="mt-2 text-slate-600 dark:text-slate-300">Name the country or region from the flag. Press Enter to answer or Esc to skip.</p>
       </header>
 
       <section id="start-screen" aria-labelledby="start-heading" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
-        <h2 id="start-heading" class="text-xl font-semibold">Choose flags to include</h2>
+        <h2 id="start-heading" class="text-xl font-semibold">Choose your quiz</h2>
+        <fieldset class="mt-4">
+          <legend class="text-sm font-medium">Flag quiz</legend>
+          <div class="mt-2 space-y-2">
+            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="game-mode" value="flag-country" checked> Show a flag; name the country or region</label>
+          </div>
+        </fieldset>
+        <fieldset class="mt-5">
+          <legend class="text-sm font-medium">Capital quiz</legend>
+          <div class="mt-2 space-y-2">
+            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="game-mode" value="flag-capital"> Show a flag; name its capital</label>
+            <label class="flex items-center gap-3 py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="radio" name="game-mode" value="country-capital"> Show a country name; name its capital</label>
+          </div>
+        </fieldset>
         <fieldset class="mt-4">
           <legend class="sr-only">Continents to include</legend>
           <div id="continent-list" class="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -28,7 +41,7 @@
             <label class="flex items-center gap-3 rounded-md py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="checkbox" value="Oceania" checked> Oceania</label>
           </div>
         </fieldset>
-        <fieldset class="mt-5">
+        <fieldset id="flag-type-fieldset" class="mt-5">
           <legend class="text-sm font-medium">Flag types</legend>
           <div id="category-list" class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
             <label class="flex items-center gap-3 rounded-md py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="checkbox" value="countries" checked> Countries</label>
@@ -36,6 +49,7 @@
             <label class="flex items-center gap-3 rounded-md py-1 text-slate-700 dark:text-slate-200"><input class="size-4 accent-blue-700" type="checkbox" value="regions"> Subnational regions</label>
           </div>
         </fieldset>
+        <p id="capital-mode-note" class="hidden mt-2 text-sm text-slate-600 dark:text-slate-300">Capital quizzes use the country set only.</p>
         <fieldset class="mt-5">
           <legend class="text-sm font-medium">Answer mode</legend>
           <div class="mt-2 space-y-2">
@@ -50,9 +64,10 @@
       <section id="play-screen" aria-labelledby="play-heading" class="hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
         <h2 id="play-heading" class="sr-only">Identify the flag</h2>
         <p id="progress" class="mb-4 text-sm font-medium text-slate-600 dark:text-slate-300" aria-live="polite"></p>
-        <img id="flag-image" class="mx-auto h-auto max-h-96 w-full border border-solid border-slate-400 dark:border-slate-500" alt="Flag to identify" draggable="false">
+        <p id="country-prompt" class="hidden mx-auto w-full border border-solid border-slate-400 p-5 text-center text-3xl font-bold dark:border-slate-500" aria-live="polite"></p>
+        <img id="flag-image" class="mx-auto h-auto max-h-96 w-full border border-solid border-slate-400 dark:border-slate-500" alt="Flag for this question" draggable="false">
         <form id="answer-form" class="mt-5">
-          <label for="guess-input" class="block text-sm font-medium">Place name</label>
+          <label id="answer-label" for="guess-input" class="block text-sm font-medium">Country or region</label>
           <div class="mt-2 flex gap-2">
             <input id="guess-input" class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-3 text-base text-slate-900 placeholder:text-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="answer-message">
             <button id="submit-button" class="shrink-0 rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500" type="submit">Submit</button>
@@ -70,12 +85,12 @@
       <section id="end-screen" aria-labelledby="end-heading" class="hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
         <h2 id="end-heading" class="text-xl font-semibold">Quiz complete</h2>
         <dl class="mt-4 space-y-2 text-slate-700 dark:text-slate-200">
-          <div><dt class="inline font-medium">Flags:</dt> <dd id="end-total" class="inline"></dd></div>
+          <div><dt id="end-total-label" class="inline font-medium">Flags:</dt> <dd id="end-total" class="inline"></dd></div>
           <div><dt class="inline font-medium">Correct on the first attempt:</dt> <dd id="end-correct" class="inline"></dd></div>
           <div><dt class="inline font-medium">Skipped:</dt> <dd id="end-skipped" class="inline"></dd></div>
         </dl>
         <div class="mt-5">
-          <h3 class="font-medium">Skipped places</h3>
+          <h3 id="skipped-heading" class="font-medium">Skipped places</h3>
           <p id="no-skips" class="mt-2 text-sm text-slate-600 dark:text-slate-300">None — well done.</p>
           <ul id="skipped-list" class="mt-2 list-inside list-disc space-y-1 text-slate-700 dark:text-slate-200"></ul>
         </div>

@@ -11,6 +11,8 @@ const seen = new Set();
 const duplicates = [];
 const invalidCodes = [];
 const invalidCategories = [];
+const missingCapitals = [];
+const invalidCapitalAliases = [];
 const missingFlags = [];
 let problems = 0;
 
@@ -34,6 +36,13 @@ countries.forEach(function (flag) {
   } else {
     categoryTotals[flag.category] += 1;
   }
+  if (flag.category === "countries" && (typeof flag.capital !== "string" || !flag.capital.trim())) {
+    missingCapitals.push(flag.code);
+  }
+  if (flag.capitalAliases !== undefined && (!Array.isArray(flag.capitalAliases) ||
+      flag.capitalAliases.some(function (alias) { return typeof alias !== "string" || !alias.trim(); }))) {
+    invalidCapitalAliases.push(flag.code);
+  }
   const continent = flag.continent || "(none)";
   continentTotals[continent] = (continentTotals[continent] || 0) + 1;
 });
@@ -42,6 +51,8 @@ console.log("Duplicate codes: " + (duplicates.join(", ") || "none"));
 console.log("Invalid codes: " + (invalidCodes.join(", ") || "none"));
 console.log("Missing flags: " + (missingFlags.join(", ") || "none"));
 console.log("Invalid categories: " + (invalidCategories.join(", ") || "none"));
+console.log("Countries missing capitals: " + (missingCapitals.join(", ") || "none"));
+console.log("Invalid capital aliases: " + (invalidCapitalAliases.join(", ") || "none"));
 Object.keys(categoryTotals).sort().forEach(function (category) {
   console.log("Category " + category + ": " + categoryTotals[category]);
 });
@@ -49,7 +60,8 @@ Object.keys(continentTotals).sort().forEach(function (continent) {
   console.log("Continent " + continent + ": " + continentTotals[continent]);
 });
 console.log("Total flags: " + countries.length);
-problems += duplicates.length + invalidCodes.length + invalidCategories.length + missingFlags.length;
+problems += duplicates.length + invalidCodes.length + invalidCategories.length + missingCapitals.length +
+  invalidCapitalAliases.length + missingFlags.length;
 if (categoryTotals.countries !== 197) {
   console.error("Expected 197 country flags.");
   problems += 1;

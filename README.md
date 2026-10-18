@@ -18,7 +18,7 @@ With Node.js installed, run:
 node check-data.js
 ```
 
-The script reports totals by flag category and continent, the overall count, duplicate or invalid codes, invalid categories, and any code without a `data/flags/4x3/<code>.svg` file. It exits with a non-zero status if a check fails.
+The script reports totals by flag category and continent, the overall count, duplicate or invalid codes, invalid categories or capital aliases, missing country capitals, and any code without a `data/flags/4x3/<code>.svg` file. It exits with a non-zero status if a check fails.
 
 ### Run locally
 
