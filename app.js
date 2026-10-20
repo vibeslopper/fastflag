@@ -29,6 +29,7 @@ const state = {
     skipped: [],
     firstTry: true,
     revealed: false,
+    replaying: false,
     preload: null,
 };
 const elements = {
@@ -55,6 +56,7 @@ const elements = {
     ),
     countryCount: $("country-count"),
     startButton: $("start-button"),
+    replayIndicator: $("replay-indicator"),
     progress: $("progress"),
     playHeading: $("play-heading"),
     countryPrompt: $("country-prompt"),
@@ -74,6 +76,7 @@ const elements = {
     skippedHeading: $("skipped-heading"),
     skippedList: $("skipped-list"),
     noSkips: $("no-skips"),
+    replayButton: $("replay-button"),
 };
 
 function normalise(value) {
@@ -145,7 +148,8 @@ function saveState() {
                   skipped: state.skipped,
                   firstTry: state.firstTry,
                   revealed: state.revealed,
-              }
+                  replaying: state.replaying,
+               }
             : null;
     try {
         localStorage.setItem(
@@ -289,10 +293,12 @@ function validGame(game) {
         !Number.isInteger(game.correctFirstTry) ||
         game.correctFirstTry < 0 ||
         typeof game.firstTry !== "boolean" ||
-        typeof game.revealed !== "boolean"
+        typeof game.revealed !== "boolean" ||
+        (game.replaying !== undefined && typeof game.replaying !== "boolean")
     )
         return false;
 
+    const replaying = game.replaying === true;
     const gameMode = savedGameMode(game);
     if (!gameMode || !validGameMode(gameMode.guessType, gameMode.promptType))
         return false;
@@ -304,7 +310,9 @@ function validGame(game) {
     const queue = new Set(game.queue);
     const skipped = new Set(game.skipped);
     if (
-        game.queue.length !== eligible.size ||
+        game.queue.length === 0 ||
+        game.queue.length > eligible.size ||
+        (!replaying && game.queue.length !== eligible.size) ||
         game.index < 0 ||
         game.index >= game.queue.length ||
         queue.size !== game.queue.length ||
@@ -353,6 +361,7 @@ function restoreState() {
     state.skipped = saved.game.skipped.slice();
     state.firstTry = saved.game.firstTry;
     state.revealed = saved.game.revealed;
+    state.replaying = saved.game.replaying === true;
 }
 
 function updateStartScreen() {
@@ -441,6 +450,7 @@ function preloadNextFlag() {
 function renderPlaying() {
     const flag = currentFlag();
     if (!flag) return finishGame();
+    elements.replayIndicator.classList.toggle("hidden", !state.replaying);
     elements.progress.textContent =
         state.index + 1 + " / " + state.queue.length;
     const countryPrompt = state.promptType === "country";
@@ -481,6 +491,12 @@ function renderEndScreen() {
     elements.endTotal.textContent = state.queue.length;
     elements.endCorrect.textContent = state.correctFirstTry;
     elements.endSkipped.textContent = state.skipped.length;
+    elements.replayButton.textContent =
+        "Replay skipped (" + state.skipped.length + ")";
+    elements.replayButton.classList.toggle(
+        "hidden",
+        state.skipped.length === 0
+    );
     elements.skippedList.textContent = "";
     elements.noSkips.classList.toggle("hidden", state.skipped.length > 0);
     state.skipped.forEach((code) => {
@@ -503,8 +519,10 @@ function render() {
     else renderEndScreen();
 }
 
-function startGame() {
-    const queue = selectedFlags().map((flag) => flag.code);
+function startGame(questions) {
+    const queue = (questions || selectedFlags()).map(
+        (question) => question.code
+    );
     if (!queue.length) return;
     state.queue = shuffle(queue);
     state.index = 0;
@@ -512,9 +530,18 @@ function startGame() {
     state.skipped = [];
     state.firstTry = true;
     state.revealed = false;
+    state.replaying = Boolean(questions);
     state.screen = "playing";
     saveState();
     render();
+}
+
+function replaySkipped() {
+    startGame(
+        state.skipped.map((code) =>
+            countries.find((item) => item.code === code)
+        )
+    );
 }
 
 function finishGame() {
@@ -573,6 +600,7 @@ function clearGame() {
     state.skipped = [];
     state.firstTry = true;
     state.revealed = false;
+    state.replaying = false;
     saveState();
     render();
 }
@@ -632,7 +660,7 @@ elements.answerModeInputs.forEach((input) =>
         updateAnswerMode();
     })
 );
-elements.startButton.addEventListener("click", startGame);
+elements.startButton.addEventListener("click", () => startGame());
 elements.answerForm.addEventListener("submit", (event) => {
     event.preventDefault();
     if (state.revealed) moveNext();
@@ -648,8 +676,9 @@ elements.guessInput.addEventListener("input", () => {
 });
 elements.skipButton.addEventListener("click", skipCurrent);
 elements.continueButton.addEventListener("click", moveNext);
+elements.replayButton.addEventListener("click", replaySkipped);
 $("quit-button").addEventListener("click", clearGame);
-$("play-again-button").addEventListener("click", startGame);
+$("play-again-button").addEventListener("click", () => startGame());
 $("change-button").addEventListener("click", clearGame);
 
 document.addEventListener("keydown", (event) => {

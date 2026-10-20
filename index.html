@@ -63,6 +63,7 @@
 
       <section id="play-screen" aria-labelledby="play-heading" class="hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
         <h2 id="play-heading" class="sr-only">Identify the flag</h2>
+        <p id="replay-indicator" class="hidden mt-2 text-sm text-slate-600 dark:text-slate-300">Replaying skipped questions</p>
         <p id="progress" class="mb-4 text-sm font-medium text-slate-600 dark:text-slate-300" aria-live="polite"></p>
         <p id="country-prompt" class="hidden mx-auto w-full border border-solid border-slate-400 p-5 text-center text-3xl font-bold dark:border-slate-500" aria-live="polite"></p>
         <img id="flag-image" class="mx-auto h-auto max-h-96 w-full border border-solid border-slate-400 dark:border-slate-500" alt="Flag for this question" draggable="false">
@@ -91,8 +92,9 @@
         </dl>
         <div class="mt-5">
           <h3 id="skipped-heading" class="font-medium">Skipped places</h3>
-          <p id="no-skips" class="mt-2 text-sm text-slate-600 dark:text-slate-300">None — well done.</p>
+          <p id="no-skips" class="mt-2 text-sm text-slate-600 dark:text-slate-300">You got them all!</p>
           <ul id="skipped-list" class="mt-2 list-inside list-disc space-y-1 text-slate-700 dark:text-slate-200"></ul>
+          <button id="replay-button" class="hidden mt-4 rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500" type="button">Replay skipped</button>
         </div>
         <div class="mt-6 flex flex-col gap-3 sm:flex-row">
           <button id="play-again-button" class="rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500" type="button">Play again with the same settings</button>
