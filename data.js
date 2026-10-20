@@ -196,7 +196,7 @@ var countries = [
   { code: "sb", name: "Solomon Islands", continent: "Oceania", aliases: [], category: "countries", capital: "Honiara" },
   { code: "so", name: "Somalia", continent: "Africa", aliases: [], category: "countries", capital: "Mogadishu" },
   { code: "za", name: "South Africa", continent: "Africa", aliases: [], category: "countries", capital: "Pretoria" },
-  { code: "gs", name: "South Georgia and the South Sandwich Islands", continent: null, aliases: ["South Georgia", "South Sandwich Islands"], category: "territories" },
+  { code: "gs", name: "South Georgia and the South Sandwich Islands", continent: "Other", aliases: ["South Georgia", "South Sandwich Islands"], category: "territories" },
   { code: "kr", name: "South Korea", continent: "Asia", aliases: ["Korea (South)", "Republic of Korea", "ROK"], category: "countries", capital: "Seoul" },
   { code: "ss", name: "South Sudan", continent: "Africa", aliases: [], category: "countries", capital: "Juba" },
   { code: "es", name: "Spain", continent: "Europe", aliases: [], category: "countries", capital: "Madrid" },

@@ -8,7 +8,9 @@ const CONTINENTS = [
     "North America",
     "South America",
     "Oceania",
+    "Other",
 ];
+const CONTINENT_SELECTION_VERSION = 2;
 const FLAG_TYPES = ["countries", "territories"];
 const GUESS_TYPES = ["place", "capital"];
 const PROMPT_TYPES = ["flag", "country"];
@@ -56,6 +58,7 @@ const elements = {
     ),
     countryCount: $("country-count"),
     startButton: $("start-button"),
+    otherContinentNote: $("other-continent-note"),
     replayIndicator: $("replay-indicator"),
     progress: $("progress"),
     playHeading: $("play-heading"),
@@ -111,8 +114,7 @@ function selectedFlags(guessType, promptType) {
                   Boolean(flag.capital);
         return (
             selectedType &&
-            (!flag.continent ||
-                state.selectedContinents.indexOf(flag.continent) !== -1)
+            state.selectedContinents.indexOf(flag.continent) !== -1
         );
     });
 }
@@ -155,6 +157,7 @@ function saveState() {
         localStorage.setItem(
             STORAGE_KEY,
             JSON.stringify({
+                continentSelectionVersion: CONTINENT_SELECTION_VERSION,
                 selectedContinents: state.selectedContinents,
                 game: game,
             })
@@ -345,6 +348,11 @@ function restoreState() {
     const saved = readSavedState();
     if (!saved || !validSelection(saved.selectedContinents)) return;
     state.selectedContinents = saved.selectedContinents.slice();
+    if (
+        saved.continentSelectionVersion !== CONTINENT_SELECTION_VERSION &&
+        state.selectedContinents.indexOf("Other") === -1
+    )
+        state.selectedContinents.push("Other");
     if (!saved.game) return;
     if (!validGame(saved.game)) {
         saveState();
@@ -386,6 +394,24 @@ function updateStartScreen() {
             !placeFromFlag && input.value === "territories"
         );
     });
+    const selectedPlaceTypes = elements.categoryInputs
+        .filter((input) => input.checked)
+        .map((input) => input.value);
+    const otherCount = countries.filter(
+        (flag) =>
+            flag.continent === "Other" &&
+            selectedPlaceTypes.indexOf(flag.category) !== -1
+    ).length;
+    const otherContinent = elements.continentInputs.find(
+        (input) => input.value === "Other"
+    );
+    const otherDisabled = otherCount === 0;
+    otherContinent.disabled = otherDisabled;
+    otherContinent.parentElement.classList.toggle(
+        "opacity-50",
+        otherDisabled
+    );
+    elements.otherContinentNote.classList.toggle("hidden", !otherDisabled);
     elements.countryPromptInput.disabled = state.guessType === "place";
     elements.countryPromptInput.parentElement.classList.toggle(
         "opacity-50",
@@ -405,8 +431,11 @@ function updateStartScreen() {
             : count === 1
             ? " country selected"
             : " countries selected");
+    const hasSelectedContinent = elements.continentInputs.some(
+        (input) => input.checked && !input.disabled
+    );
     elements.startButton.disabled =
-        state.selectedContinents.length === 0 ||
+        !hasSelectedContinent ||
         (placeFromFlag && state.selectedCategories.length === 0) ||
         count === 0;
 }
